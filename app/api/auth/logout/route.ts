@@ -1,12 +1,14 @@
-// app/api/auth/logout/route.ts
 import { NextResponse } from "next/server";
 import { AUTH_COOKIE } from "@/lib/auth";
 
 export async function POST() {
   const res = NextResponse.json({ ok: true });
+
   res.cookies.set(AUTH_COOKIE, "", {
+    httpOnly: true,
     path: "/",
-    maxAge: 0,
+    maxAge: 0, // 🔥 這個最重要
   });
+
   return res;
 }
