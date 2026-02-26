@@ -2,6 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+/* 🔐 新增：登入狀態 */
+function useAuth() {
+  const [authed, setAuthed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => setAuthed(d.authed))
+      .catch(() => setAuthed(false));
+  }, []);
+
+  return authed;
+}
+
 
 const CATEGORIES = [
   { value: "TIMED_TOURNAMENT", label: "限時錦標賽" },
@@ -133,6 +147,7 @@ function safeDateMinusDays(base: Date, days: number) {
 }
 
 export default function Page() {
+  const authed = useAuth();
   const [rows, setRows] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -416,19 +431,45 @@ const [toDate, setToDate] = useState<string>("2100-12-31");
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100">
       <header className="border-b border-neutral-800 bg-neutral-950/80 backdrop-blur">
-        <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight">Poker Tracker</h1>
+  <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
+    <div>
+      <h1 className="text-lg font-semibold tracking-tight">Poker Tracker</h1>
+    </div>
 
-          </div>
+    <div className="flex items-center gap-3">
+      <button
+        className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm hover:border-neutral-600"
+        onClick={refresh}
+      >
+        重新整理
+      </button>
+
+      {authed === false && (
+        <a
+          href="/login"
+          className="rounded-lg border border-neutral-700 bg-neutral-100 px-3 py-2 text-sm font-semibold text-neutral-900 hover:bg-white"
+        >
+          Login
+        </a>
+      )}
+
+      {authed === true && (
+        <>
+          <span className="text-xs text-neutral-400">已登入</span>
           <button
-            className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm hover:border-neutral-600"
-            onClick={refresh}
+            className="rounded-lg border border-neutral-700 bg-neutral-100 px-3 py-2 text-sm font-semibold text-neutral-900 hover:bg-white"
+            onClick={async () => {
+              await fetch("/api/auth/logout", { method: "POST" });
+              location.reload();
+            }}
           >
-            重新整理
+            Logout
           </button>
-        </div>
-      </header>
+        </>
+      )}
+    </div>
+  </div>
+</header>
 
       <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
         {/* KPI */}
@@ -450,7 +491,8 @@ const [toDate, setToDate] = useState<string>("2100-12-31");
         {/* Add + Filters */}
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Add */}
-          <div className="lg:col-span-2 rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
+          {authed && (
+            <div className="lg:col-span-2 rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold">新增一場</div>
               <div className="text-xs text-neutral-400">日期：{addDate}</div>
@@ -669,7 +711,7 @@ const [toDate, setToDate] = useState<string>("2100-12-31");
               </div>
             </div>
           </div>
-
+)}
           {/* Filters */}
           <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
             <div className="flex items-center justify-between">
@@ -967,12 +1009,13 @@ const [toDate, setToDate] = useState<string>("2100-12-31");
                         <td className="px-4 py-3 text-left text-neutral-300">{r.note ?? ""}</td>
 
                         <td className="px-4 py-3 text-right">
+                          {authed && (
                           <button
                             className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs hover:border-neutral-600"
                             onClick={() => deleteSession(r.id)}
                           >
                             刪除
-                          </button>
+                          </button>  )}
                         </td>
                       </tr>
                     );
